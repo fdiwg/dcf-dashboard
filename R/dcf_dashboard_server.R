@@ -56,9 +56,6 @@ dcf_dashboard_server <- function(input, output,session,
   waiter_hide()
   
   output$indicators<-renderUI({
-    print("TEST HERE")
-    print(getUniqueValues(data_tasks,tasks,reporting_entity))
-    print("TEST END")
     div( class="row",
          div(class = "col-xs-3 col-sm-6 col-md-6 col-lg-3 col-xl-3",infoBox(names(reporting_entity),sprintf("%s / %s",length(getUniqueValues(data_tasks,tasks,reporting_entity)),length(reporting_entities)), icon = icon("flag"), fill = TRUE,color="blue",width = NULL)),
          div(class = "col-xs-3 col-sm-6 col-md-6 col-lg-3 col-xl-3",infoBox("Tasks",length(data_tasks), icon = icon("list-check"), fill = TRUE,color="yellow",width = NULL)),
@@ -305,7 +302,6 @@ dcf_dashboard_server <- function(input, output,session,
   output$heatmap<-renderPlotly({
     req(!is.null(data()))
     req(!is.null(input$limit_entities))
-    print("RUN HEATMAP")
     df<-data()
     colnames(df)[colnames(df)==reporting_entity] <- "reporting_entity"
     df<-subset(df,select=c(reporting_entity,time_end))
@@ -326,8 +322,6 @@ dcf_dashboard_server <- function(input, output,session,
       dplyr::arrange(desc(reporting_entity),year)%>%
       dplyr::filter(reporting_entity %in% entity_list)%>%
       tidyr::pivot_wider(names_from = year,values_from = value,names_sort=T)
-    
-    print(head(as.data.frame(df)))
     
     y_lab<-df$reporting_entity
     x_lab<-colnames(df)[-1]
@@ -368,9 +362,7 @@ dcf_dashboard_server <- function(input, output,session,
     req(!is.null(data_s()))
     req(!is.null(input$limit_entities_s))
     req(dataAvailable()|(!dataAvailable()&!input$limit_entities_s))
-    print("RUN HEATMAP")
     req(!is.null(input$stat_s))
-    print(input$stat_s)
     df<-data_s()
     colnames(df)[colnames(df)==reporting_entity] = "reporting_entity"
     df<-df[,c("reporting_entity","task",input$stat_s)]
@@ -384,8 +376,6 @@ dcf_dashboard_server <- function(input, output,session,
       ungroup()
     
     max_value<-max(df$value,na.rm=T)
-    
-    print(max_value)
     entity_list <- NULL
     if(isTRUE(input$limit_entities_s)){
       entity_list<-unique(df$reporting_entity)
@@ -405,9 +395,6 @@ dcf_dashboard_server <- function(input, output,session,
       dplyr::select(-stat)%>%
       tidyr::pivot_wider(names_from = task,values_from = value,names_sort=T)
     
-    print(head(as.data.frame(dfm)))
-    print(head(as.data.frame(text)))
-    
     y_lab<-dfm$reporting_entity
     x_lab<-colnames(dfm)[-1]
     
@@ -419,7 +406,6 @@ dcf_dashboard_server <- function(input, output,session,
     # ) 
     
     if(input$stat_s%in%c("nb_year","nb_record")){
-      print("HERE")
       fig<-plot_ly(
         height = 150+40*length(y_lab),
         x=x_lab,
@@ -471,7 +457,7 @@ dcf_dashboard_server <- function(input, output,session,
   })
   
   output$heatmap_s_wrapper<-renderUI({
-    if(!dataAvailable()&input$limit_entities_s){
+    if(!dataAvailable()&isTRUE(input$limit_entities_s)){
       uiOutput("nodata_s")
     }else{
       fluidRow(
