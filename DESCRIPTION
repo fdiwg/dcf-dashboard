@@ -15,6 +15,7 @@ Imports:
   DBI,
   pool,
   RPostgres,
+  readr,
   dplyr,
   lubridate,
   tidyr,

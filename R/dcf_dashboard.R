@@ -8,6 +8,7 @@
 #' @import pool
 #' @import RPostgres
 #' @import dplyr
+#' @import readr
 #' @import lubridate
 #' @import tidyr
 #' @import plotly
