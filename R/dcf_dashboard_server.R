@@ -44,6 +44,7 @@ dcf_dashboard_server <- function(input, output,session,
   data_tasks<-lapply(setNames(tasks,tasks),function(x){
     file<-getDataTaskDBData(pool, x)
   })
+  data_tasks = data_tasks[!sapply(data_tasks, is.null)]
   
   reporting_entities<-dt_reporting_entities$code
   
@@ -194,7 +195,6 @@ dcf_dashboard_server <- function(input, output,session,
       
       summary<-do.call("rbind",lapply(tasks,function(x){
         data_task<-data_tasks[[x]]
-        
         colnames(data_task)[colnames(data_task)==reporting_entity] = "reporting_entity"
         
         data_task<-data_task%>%
