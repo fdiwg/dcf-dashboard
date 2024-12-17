@@ -42,7 +42,7 @@ dcf_dashboard_server <- function(input, output,session,
   
   
   data_tasks<-lapply(setNames(tasks,tasks),function(x){
-    file<-getDataTaskDBData(pool, x)
+    getDataTaskDBData(pool, x)
   })
   data_tasks = data_tasks[!sapply(data_tasks, is.null)]
   
@@ -195,20 +195,20 @@ dcf_dashboard_server <- function(input, output,session,
       
       summary<-do.call("rbind",lapply(tasks,function(x){
         data_task<-data_tasks[[x]]
-        colnames(data_task)[colnames(data_task)==reporting_entity] = "reporting_entity"
-        
-        data_task<-data_task%>%
-          dplyr::group_by(reporting_entity)%>%
-          dplyr::summarise(period=paste0("first:",year(min(time_end,na.rm=T)),"- last:",year(max(time_end,na.rm=T))),
-                    min_year=as.character(year(min(time_end,na.rm=T))),
-                    max_year=as.character(year(max(time_end,na.rm=T))),
-                    nb_year=as.character(length(unique(year(time_end)))),
-                    nb_record=as.character(length(reporting_entity)),
-                    available_years=paste0(pretty_seq(sort(unique(year(time_end)))),collapse=";"))%>%
-          dplyr::arrange(desc(reporting_entity))%>%
-          dplyr::ungroup()%>%
-          dplyr::mutate(task=gsub(": ",":\n",names(tasks[tasks==x])))
-        
+        if(!is.null(data_task)){
+          colnames(data_task)[colnames(data_task)==reporting_entity] = "reporting_entity"
+          data_task<-data_task%>%
+            dplyr::group_by(reporting_entity)%>%
+            dplyr::summarise(period=paste0("first:",year(min(time_end,na.rm=T)),"- last:",year(max(time_end,na.rm=T))),
+                      min_year=as.character(year(min(time_end,na.rm=T))),
+                      max_year=as.character(year(max(time_end,na.rm=T))),
+                      nb_year=as.character(length(unique(year(time_end)))),
+                      nb_record=as.character(length(reporting_entity)),
+                      available_years=paste0(pretty_seq(sort(unique(year(time_end)))),collapse=";"))%>%
+            dplyr::arrange(desc(reporting_entity))%>%
+            dplyr::ungroup()%>%
+            dplyr::mutate(task=gsub(": ",":\n",names(tasks[tasks==x])))
+        }
       })
       )
       
