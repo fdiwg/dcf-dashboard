@@ -2,6 +2,7 @@
 #'@export
 dcf_dashboard_server <- function(input, output,session,
                                  tasks, reporting_entity, ref_reporting_entities,
+                                 allow_download=FALSE,
                                  gisviewer_url = NULL) {
   
   waiting_screen<-tagList(
@@ -234,9 +235,13 @@ dcf_dashboard_server <- function(input, output,session,
   })
   
   output$download_wrapper<-renderUI({
+    if(allow_download==T){
     req(data_s())
     if(nrow(data_s())>0){
       downloadButton("download",label="Download summary",icon=shiny::icon("file-excel"),style = "background: #0d6cac !important;  padding: 5px 20px!important; margin: 2px 8px; color: #fff !important; border-radius: 0.25rem; border: 0;")
+    }
+    }else{
+      NULL
     }
   })
   
