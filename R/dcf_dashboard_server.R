@@ -369,8 +369,13 @@ dcf_dashboard_server <- function(input, output,session,
         if(input$with_col_aliases) if(length(column_spec$aliases)>0){
           col = column_spec$aliases[[1]]
         }
-        reorder = startsWith(colnames(target_data), col) #if enriched with labels, we should get the code/label columns
-        
+        has_cl = column_spec$hasCodelist() && any(sapply(column_spec$rules, is, "vrule_codelist"))
+        reorder = if(has_cl){
+          startsWith(colnames(target_data), col) #if enrichable with labels, we should get the code/label columns
+        }else{
+          colnames(target_data) == col #if not enrichable with labels, we look for identity
+        }
+          
         if(length(reorder)>0){
           columns = colnames(target_data)[reorder]
           out = target_data[,columns]
