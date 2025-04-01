@@ -1,6 +1,6 @@
 Package: dcf.dashboard
 Version: 0.1
-Date: 2024-07-23
+Date: 2025-04-01
 Title: A generic shiny app to report data availability from dcf-shiny databases
 Description: A generic shiny app to report data availability from dcf-shiny databases
 Authors@R: c(
