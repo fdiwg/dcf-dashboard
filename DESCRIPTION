@@ -28,7 +28,9 @@ Imports:
   shinyWidgets
 Suggests: 
   testthat
+Remotes:
+  fdiwg/vrule
 URL: https://github.com/fdiwg/dcf-dashboard
 BugReports: https://github.com/fdiwg/dcf-dashboard/issues
 LazyLoad: yes
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2

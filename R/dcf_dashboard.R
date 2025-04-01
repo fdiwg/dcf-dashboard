@@ -18,6 +18,7 @@
 #' @import openxlsx
 #' @import waiter
 #' @import shinyWidgets
+#' @import vrule
 #' 
 #' @title A generic shiny app to report data availability from dcf-shiny databases
 #' @description A generic shiny app to report data availability from dcf-shiny databases
