@@ -366,10 +366,11 @@ dcf_dashboard_server <- function(input, output,session,
         out = NULL
         col = column_spec$name
         if(column_spec$name %in% c("month", "quarter")) col = "period"
-        reorder = colnames(target_data) == col
         if(input$with_col_aliases) if(length(column_spec$aliases)>0){
-          reorder = colnames(target_data) == column_spec$aliases[[1]]
+          col = column_spec$aliases[[1]]
         }
+        reorder = startsWith(colnames(target_data), col) #if enriched with labels, we should get the code/label columns
+        
         if(length(reorder)>0){
           columns = colnames(target_data)[reorder]
           out = target_data[,columns]
