@@ -2,6 +2,7 @@
 
 export(dcf_dashboard_server)
 export(dcf_dashboard_ui)
+export(genericToSimplified)
 export(getDataTaskDBData)
 export(getDataTaskTablename)
 export(getUniqueValues)
@@ -21,4 +22,5 @@ import(shinycssloaders)
 import(shinydashboard)
 import(shinyjs)
 import(tidyr)
+import(vrule)
 import(waiter)
