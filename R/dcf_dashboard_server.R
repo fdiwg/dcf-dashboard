@@ -92,8 +92,7 @@ dcf_dashboard_server <- function(input, output,session,
   output$summary_content<-renderUI({
     tagList(
       fluidRow(
-        div(class = "row",
-            class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+        div(class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
             uiOutput("entities_selector_s")
         ),
         div(
@@ -115,16 +114,12 @@ dcf_dashboard_server <- function(input, output,session,
     if(dataAvailable()){
       tagList(
         fluidRow(
-          div(class="row",
-              class = "col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2",
-              uiOutput("task_selector")
+          div(class = "col-sm-6 col-md-6 col-lg-2 col-xl-2",
+              uiOutput("task_selector"),
+              uiOutput("entities_selector")
           ),
           div(
-            class = "col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2",
-            uiOutput("entities_selector")
-          ),
-          div(
-            class = "col-12 col-sm-6 col-md-4 col-lg-4 col-xl-4",
+            class = "col-sm-6 col-md-6 col-lg-4 col-xl-4",
             uiOutput("download_task_wrapper")
         )
         ),
@@ -133,7 +128,7 @@ dcf_dashboard_server <- function(input, output,session,
           withSpinner(plotlyOutput("heatmap"),type=4)
         )
       )}else{
-        p("(no data available)")
+        p("(No data available)")
       }
   })
   
@@ -260,11 +255,10 @@ dcf_dashboard_server <- function(input, output,session,
     
     if(nrow(data())>0){
       box(
-        title="Download dataset",
         div(
           if(length(formats)>1){
             selectizeInput("format",
-                           label="Export format",
+                           label="Download dataset",
                            multiple = F,
                            choices = formats,
                            selected=formats[1],
@@ -329,7 +323,6 @@ dcf_dashboard_server <- function(input, output,session,
         target_data<-genericToSimplified(target_data)
         print("Successful transformation from 'generic' to 'simplified' format!")
       }
-      
       if(input$with_codelist_labels){
         #enrich with codelist labels
         for(col in  names(target_data)){
@@ -345,7 +338,6 @@ dcf_dashboard_server <- function(input, output,session,
               if(input$with_col_aliases) if(length(column_spec$aliases)>0) alias = column_spec$aliases[[1]]
               names(ref)<-c(sprintf("%s [code]",alias),sprintf("%s [label]",alias))
               names(target_data)[names(target_data) == col] <-sprintf("%s [code]",alias)
-              
               target_data<-base::merge(target_data,ref)
             }else{
               #manage column aliases if checked
