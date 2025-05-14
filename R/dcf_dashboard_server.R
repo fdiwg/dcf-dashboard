@@ -132,6 +132,34 @@ dcf_dashboard_server <- function(input, output,session,
       }
   })
   
+  output$template_content<-renderUI({
+    tagList(
+      fluidRow(
+        div(class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+            uiOutput("task_selector_template")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("format_template_wrapper")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("with_aliases_template_wrapper")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("download_template_btn_wrapper")
+        )
+    )
+    )
+  })
+  
+  output$with_aliases_template_wrapper<-renderUI(({
+    req(input$task_template)
+    req(input$format_template)
+    checkboxInput("with_aliases_template", "Use column aliases names", value = FALSE)
+  }))
+  
   output$menu<-renderUI({
     tagList(
       uiOutput("indicators"),
@@ -150,7 +178,11 @@ dcf_dashboard_server <- function(input, output,session,
                           value="tab_map",
                           shiny::htmlOutput("gisviewer_frame")
                   )
-                 }else{NULL}
+                 }else{NULL},
+                 tabPanel(title=tagList(icon("file")," Data template"),
+                          value="tab_template",
+                          uiOutput("template_content")
+                 ),
           )
       )
     )
@@ -194,6 +226,77 @@ dcf_dashboard_server <- function(input, output,session,
                    )
     )
   })
+  
+  output$task_selector_template<-renderUI({
+    selectizeInput("task_template",
+                   label="Task",
+                   multiple = F,
+                   choices = tasks,
+                   selected=NULL,
+                   options = list(
+                     placeholder = "Please select a task",
+                     onInitialize = I('function() { this.setValue(""); }')
+                   )
+    )
+  })
+  
+  output$format_template_wrapper<-renderUI({
+      req(input$task_template)
+      
+      selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task_template))]]
+      formats<-unlist(lapply(selected_task$formats, function(x){setNames(x$id,x$label)}))
+      
+          div(
+            if(length(formats)>1){
+              selectizeInput("format_template",
+                             label="Select format",
+                             multiple = F,
+                             choices = formats,
+                             selected=formats[1],
+                             options = list(
+                               placeholder = "Please select a format",
+                               onInitialize = I('function() { this.setValue(""); }')
+                             )
+              )
+            }else{
+              disabled(
+                selectizeInput("format_template",
+                               label="Select format",
+                               multiple = F,
+                               choices = formats,
+                               selected=formats[1]
+                )
+              )
+            }
+        )
+  })
+  
+  output$download_template_btn_wrapper<-renderUI({
+    req(input$task_template)
+    req(input$format_template)
+    
+    if(input$format_template==""){
+      disabled(downloadButton("download_template",label="Download template",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;"))
+    }else{
+      
+      downloadButton("download_template",label="Download template",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;")
+    }
+  })
+  
+  output$download_template <- downloadHandler(
+    filename = function() { 
+      sprintf("template_%s_%s.zip",input$task_template,input$format_template)
+    },
+    content = function(filename) {
+      selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task_template))]]
+      format_ref<-selected_task$formats[[which(sapply(selected_task$formats, function(x) x$id ==input$format_template))]]
+      
+      format_ref<-format_ref$ref
+      format_spec <- vrule::format_spec$new(json = jsonlite::read_json(format_ref))
+      zipfile_name <- format_spec$createTemplate(use_alias=input$with_aliases_template)
+      file.copy(zipfile_name, filename)
+    },
+    contentType = "application/zip")
   
   observeEvent(data_tasks,{
     if(dataAvailable()){
