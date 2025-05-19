@@ -179,7 +179,7 @@ dcf_dashboard_server <- function(input, output,session,
                           shiny::htmlOutput("gisviewer_frame")
                   )
                  }else{NULL},
-                 tabPanel(title=tagList(icon("file")," Data template"),
+                 tabPanel(title=tagList(icon("file")," Data templates"),
                           value="tab_template",
                           uiOutput("template_content")
                  ),
