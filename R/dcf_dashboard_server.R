@@ -5,6 +5,10 @@ dcf_dashboard_server <- function(input, output,session,
                                  allow_download=FALSE,
                                  gisviewer_url = NULL) {
   
+  tasks_obj<-tasks
+  
+  tasks<-unlist(lapply(tasks, function(x){setNames(x$id,x$label)}))
+  
   waiting_screen<-tagList(
     h3("Initialisation of Application"),
     waiter::spin_flower()
@@ -45,6 +49,7 @@ dcf_dashboard_server <- function(input, output,session,
   data_tasks<-lapply(setNames(tasks,tasks),function(x){
     getDataTaskDBData(pool, x)
   })
+  
   data_tasks = data_tasks[!sapply(data_tasks, is.null)]
   
   reporting_entities<-dt_reporting_entities$code
@@ -87,8 +92,7 @@ dcf_dashboard_server <- function(input, output,session,
   output$summary_content<-renderUI({
     tagList(
       fluidRow(
-        div(class = "row",
-            class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+        div(class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
             uiOutput("entities_selector_s")
         ),
         div(
@@ -110,23 +114,51 @@ dcf_dashboard_server <- function(input, output,session,
     if(dataAvailable()){
       tagList(
         fluidRow(
-          div(class="row",
-              class = "col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2",
-              uiOutput("task_selector")
+          div(class = "col-sm-6 col-md-6 col-lg-2 col-xl-2",
+              uiOutput("task_selector"),
+              uiOutput("entities_selector")
           ),
           div(
-            class = "col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2",
-            uiOutput("entities_selector")
-          )
+            class = "col-sm-6 col-md-6 col-lg-4 col-xl-4",
+            uiOutput("download_task_wrapper")
+        )
         ),
         fluidRow(
           uiOutput("heatmap_legend"),
           withSpinner(plotlyOutput("heatmap"),type=4)
         )
       )}else{
-        p("(no data available)")
+        p("(No data available)")
       }
   })
+  
+  output$template_content<-renderUI({
+    tagList(
+      fluidRow(
+        div(class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+            uiOutput("task_selector_template")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("format_template_wrapper")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("with_aliases_template_wrapper")
+        ),
+        div(
+          class = "col-xs-4 col-sm-6 col-md-4 col-lg-2 col-xl-2",
+          uiOutput("download_template_btn_wrapper")
+        )
+    )
+    )
+  })
+  
+  output$with_aliases_template_wrapper<-renderUI(({
+    req(input$task_template)
+    req(input$format_template)
+    checkboxInput("with_aliases_template", "Use column aliases names", value = FALSE)
+  }))
   
   output$menu<-renderUI({
     tagList(
@@ -146,7 +178,11 @@ dcf_dashboard_server <- function(input, output,session,
                           value="tab_map",
                           shiny::htmlOutput("gisviewer_frame")
                   )
-                 }else{NULL}
+                 }else{NULL},
+                 tabPanel(title=tagList(icon("file")," Data templates"),
+                          value="tab_template",
+                          uiOutput("template_content")
+                 ),
           )
       )
     )
@@ -190,6 +226,77 @@ dcf_dashboard_server <- function(input, output,session,
                    )
     )
   })
+  
+  output$task_selector_template<-renderUI({
+    selectizeInput("task_template",
+                   label="Task",
+                   multiple = F,
+                   choices = tasks,
+                   selected=NULL,
+                   options = list(
+                     placeholder = "Please select a task",
+                     onInitialize = I('function() { this.setValue(""); }')
+                   )
+    )
+  })
+  
+  output$format_template_wrapper<-renderUI({
+      req(input$task_template)
+      
+      selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task_template))]]
+      formats<-unlist(lapply(selected_task$formats, function(x){setNames(x$id,x$label)}))
+      
+          div(
+            if(length(formats)>1){
+              selectizeInput("format_template",
+                             label="Select format",
+                             multiple = F,
+                             choices = formats,
+                             selected=formats[1],
+                             options = list(
+                               placeholder = "Please select a format",
+                               onInitialize = I('function() { this.setValue(""); }')
+                             )
+              )
+            }else{
+              disabled(
+                selectizeInput("format_template",
+                               label="Select format",
+                               multiple = F,
+                               choices = formats,
+                               selected=formats[1]
+                )
+              )
+            }
+        )
+  })
+  
+  output$download_template_btn_wrapper<-renderUI({
+    req(input$task_template)
+    req(input$format_template)
+    
+    if(input$format_template==""){
+      disabled(downloadButton("download_template",label="Download template",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;"))
+    }else{
+      
+      downloadButton("download_template",label="Download template",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;")
+    }
+  })
+  
+  output$download_template <- downloadHandler(
+    filename = function() { 
+      sprintf("template_%s_%s.zip",input$task_template,input$format_template)
+    },
+    content = function(filename) {
+      selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task_template))]]
+      format_ref<-selected_task$formats[[which(sapply(selected_task$formats, function(x) x$id ==input$format_template))]]
+      
+      format_ref<-format_ref$ref
+      format_spec <- vrule::format_spec$new(json = jsonlite::read_json(format_ref))
+      zipfile_name <- format_spec$createTemplate(use_alias=input$with_aliases_template)
+      file.copy(zipfile_name, filename)
+    },
+    contentType = "application/zip")
   
   observeEvent(data_tasks,{
     if(dataAvailable()){
@@ -235,15 +342,158 @@ dcf_dashboard_server <- function(input, output,session,
   })
   
   output$download_wrapper<-renderUI({
-    if(allow_download==T){
     req(data_s())
     if(nrow(data_s())>0){
       downloadButton("download",label="Download summary",icon=shiny::icon("file-excel"),style = "background: #0d6cac !important;  padding: 5px 20px!important; margin: 2px 8px; color: #fff !important; border-radius: 0.25rem; border: 0;")
+    }
+  })
+  
+  output$download_task_wrapper<-renderUI({
+    if(allow_download==T){
+    req(data())
+    req(input$task)
+    
+    selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task))]]
+    formats<-unlist(lapply(selected_task$formats, function(x){setNames(x$id,x$label)}))
+    
+    if(nrow(data())>0){
+      box(
+        div(
+          if(length(formats)>1){
+            selectizeInput("format",
+                           label="Download dataset",
+                           multiple = F,
+                           choices = formats,
+                           selected=formats[1],
+                           options = list(
+                             placeholder = "Please select an export format",
+                             onInitialize = I('function() { this.setValue(""); }')
+                           )
+            )
+          }else{
+            disabled(
+              selectizeInput("format",
+                             label="Export format",
+                             multiple = F,
+                             choices = formats,
+                             selected=formats[1]
+              )
+            )
+          },
+          checkboxInput("with_codelist_labels", "Enrich with codelists labels", value = FALSE),
+          checkboxInput("with_col_aliases", "Use column aliases names", value = FALSE),
+          uiOutput("download_task_btn_wrapper")
+          
+        )
+      )
     }
     }else{
       NULL
     }
   })
+  
+  output$download_task_btn_wrapper<-renderUI(
+    if(input$format==""){
+      disabled(downloadButton("download_task",label="Download data",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;"))
+    }else{
+
+      downloadButton("download_task",label="Download data",icon=shiny::icon("download"),style = "padding: 5px 20px; margin: 2px 8px;")
+    }
+  )
+  
+  output$download_task <- downloadHandler(
+    filename = function() { 
+      sprintf("data_%s_%s.csv",input$task,Sys.Date())
+    },
+    content = function(filename) {
+      req(nrow(data())>0)
+      req(!is.null(input$with_col_aliases))
+      req(!is.null(input$with_codelist_labels))
+      req(!is.null(input$format))
+      
+      #inherit dataset
+      target_data<-data()
+      
+      #inherit format 
+      selected_task<-tasks_obj[[which(sapply(tasks_obj, function(x) x$id == input$task))]]
+      format_ref<-selected_task$formats[[which(sapply(selected_task$formats, function(x) x$id ==input$format))]]
+      
+      format_ref<-format_ref$ref
+      format_spec <- vrule::format_spec$new(json = jsonlite::read_json(format_ref))
+      
+      if(input$format!="generic"){
+        print("Transforming to 'simplified' format")
+        target_data<-genericToSimplified(target_data)
+        print("Successful transformation from 'generic' to 'simplified' format!")
+      }
+      if(input$with_codelist_labels){
+        #enrich with codelist labels
+        for(col in  names(target_data)){
+          column_spec = format_spec$getColumnSpecByName(col)
+          if(is.null(column_spec)) column_spec = format_spec$getColumnSpecByName("month")
+          if(is.null(column_spec)) column_spec = format_spec$getColumnSpecByName("quarter")
+          if(!is.null(column_spec)){
+            if(column_spec$hasCodelist() && any(sapply(column_spec$rules, is, "vrule_codelist"))){
+              cl_rule = column_spec$rules[sapply(column_spec$rules, is, "vrule_codelist")][[1]]
+              ref<-subset(cl_rule$ref_data,select=c(code,label))
+              #manage column aliases if checked
+              alias = col
+              if(input$with_col_aliases) if(length(column_spec$aliases)>0) alias = column_spec$aliases[[1]]
+              names(ref)<-c(sprintf("%s [code]",alias),sprintf("%s [label]",alias))
+              names(target_data)[names(target_data) == col] <-sprintf("%s [code]",alias)
+              target_data<-base::merge(target_data,ref)
+            }else{
+              #manage column aliases if checked
+              if(input$with_col_aliases) if(length(column_spec$aliases)>0) {
+                names(target_data)[names(target_data) == col] <- column_spec$aliases[[1]]
+              }
+            }
+          }
+        }
+      }else{
+        for(col in  names(target_data)){
+          column_spec = format_spec$getColumnSpecByName(col)
+          if(is.null(column_spec)) column_spec = format_spec$getColumnSpecByName("month")
+          if(is.null(column_spec)) column_spec = format_spec$getColumnSpecByName("quarter")
+          if(!is.null(column_spec)){
+            #manage column aliases if checked
+            if(input$with_col_aliases) if(length(column_spec$aliases)>0) {
+              names(target_data)[names(target_data) == col] <- column_spec$aliases[[1]]
+            }
+          }
+        }
+      }
+      
+      #reorder
+      target_data = do.call("cbind", lapply(format_spec$column_specs, function(column_spec){
+        out = NULL
+        col = column_spec$name
+        if(column_spec$name %in% c("month", "quarter")) col = "period"
+        if(input$with_col_aliases) if(length(column_spec$aliases)>0){
+          col = column_spec$aliases[[1]]
+        }
+        has_cl = column_spec$hasCodelist() && any(sapply(column_spec$rules, is, "vrule_codelist"))
+        reorder = if(has_cl){
+          startsWith(colnames(target_data), col) #if enrichable with labels, we should get the code/label columns
+        }else{
+          colnames(target_data) == col #if not enrichable with labels, we look for identity
+        }
+          
+        if(length(reorder)>0){
+          columns = colnames(target_data)[reorder]
+          out = target_data[,columns]
+          if(length(columns)==1){
+            out = data.frame(col = out)
+            colnames(out) = columns
+          }
+        }
+        if(column_spec$name == "month") colnames(out)[colnames(out)=="period"] = "month"
+        if(column_spec$name == "quarter") colnames(out)[colnames(out)=="period"] = "quarter"
+        out
+      }))
+      print("Successful data export!")
+      readr::write_csv(target_data,file = filename)
+    })
   
   output$download <- downloadHandler(
     filename = function() { 
