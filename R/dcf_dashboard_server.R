@@ -142,7 +142,7 @@ dcf_dashboard_server <- function(input, output,session,
                           uiOutput("by_task_content")
                  ),
                  if(!is.null(gisviewer_url)){
-                   tabPanel(title=tagList(icon("map")," Map"),
+                   tabPanel(title=tagList(icon("map")," GIS Viewer"),
                           value="tab_map",
                           shiny::htmlOutput("gisviewer_frame")
                   )
