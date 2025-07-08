@@ -167,7 +167,18 @@ dcf_dashboard_server <- function(input, output,session,
           tabBox(id = "tabbox",title=NULL,height="600px",width = "100%",
                  tabPanel(title=tagList(icon("clipboard")," Summary"),
                           value="tab_summary",
-                          uiOutput("summary_content")
+                          if(reporting_entity == "flagstate"){
+                            tabsetPanel(id = "summary_tabbox", title = NULL, height="600px",width = "100%", type = "pills",
+                              tabPanel(title=tagList(icon("table"), " Table"),
+                                       value = "tab_summary_table",
+                                       uiOutput("summary_content")),
+                              tabPanel(title=tagList(icon("map"), " Map"),
+                                       value = "tab_summary_map",
+                                       "TODO")
+                            )
+                          }else{
+                            uiOutput("summary_content")
+                          }
                  ),
                  tabPanel(title=tagList(icon("list")," By Task"),
                           value="tab_by_task",
